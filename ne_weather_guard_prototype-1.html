@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>NE WeatherGuard — Weather Risk Dashboard</title>
+<style>
+  :root{
+    --bg:#07111b; --panel:#0c1b28; --panel2:#102536; --line:#22394c;
+    --text:#eef6ff; --muted:#8fa7ba; --blue:#3aa8ff; --red:#ef4444;
+    --orange:#f59e0b; --green:#22c55e; --cyan:#67e8f9;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:#eaf2fa;color:#eaf4ff}
+  .app{min-height:100vh;display:grid;grid-template-columns:210px 1fr;background:var(--bg)}
+  aside{background:#08141f;border-right:1px solid #1d3041;padding:20px 14px;position:sticky;top:0;height:100vh}
+  .brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:17px;margin:2px 8px 26px}
+  .brand-icon{width:36px;height:36px;border-radius:11px;background:linear-gradient(135deg,#1597ff,#6ee7ff);display:grid;place-items:center;color:#03101b;font-size:21px}
+  nav{display:grid;gap:7px}
+  nav button{border:0;background:transparent;color:#9db0c0;text-align:left;padding:11px 12px;border-radius:9px;font-size:13px;cursor:pointer}
+  nav button.active,nav button:hover{background:#176bc4;color:#fff}
+  .nav-icon{display:inline-block;width:24px}
+  main{min-width:0}
+  header{height:66px;background:#0a1723;border-bottom:1px solid #1d3041;display:flex;align-items:center;gap:14px;padding:0 20px}
+  .top-title{font-size:14px;font-weight:700}
+  .search{margin-left:auto;display:flex;align-items:center;background:#132535;border:1px solid #22394c;border-radius:9px;width:min(310px,35vw);height:38px}
+  .search input{width:100%;background:transparent;border:0;outline:0;color:#fff;padding:0 12px;font-size:13px}
+  .search button{border:0;background:transparent;color:#8ea5b7;cursor:pointer;font-size:18px;padding:0 12px}
+  .avatar{width:36px;height:36px;border-radius:50%;background:#1d3347;display:grid;place-items:center;color:#9cc8eb}
+  .content{padding:18px 20px 22px}
+  .risk-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:14px}
+  .risk-card{background:#eef5fc;border-radius:10px;padding:13px 15px;color:#173047;display:flex;align-items:center;gap:11px;min-height:76px;box-shadow:0 2px 8px #0002}
+  .risk-card .ico{font-size:29px}.risk-card strong{display:block;font-size:14px}.risk-card span{font-size:11px;color:#60778b}
+  .risk-card.red{background:#ffe3e3}.risk-card.blue{background:#e4f2ff}.risk-card.purple{background:#eee9ff}.risk-card.green{background:#e5f7e8}
+  .grid{display:grid;grid-template-columns:minmax(0,1.65fr) minmax(310px,.8fr);gap:14px}
+  .panel{background:#0d1d2a;border:1px solid #21394c;border-radius:12px;overflow:hidden;box-shadow:0 8px 25px #0003}
+  .panel-head{display:flex;align-items:center;justify-content:space-between;padding:12px 15px;border-bottom:1px solid #203648}
+  .panel-head h3{font-size:13px;margin:0}.panel-head small{color:#7992a6}
+  #map{height:520px;width:100%}
+  .map-wrap{position:relative}
+  .map-overlay{position:absolute;left:12px;bottom:12px;background:#08141de8;border:1px solid #31495c;border-radius:8px;padding:10px 12px;font-size:11px;z-index:2}
+  .legend{display:grid;gap:6px}.legend div{display:flex;align-items:center;gap:7px}.dot{width:11px;height:11px;border-radius:50%}
+  .alerts{padding:12px;display:grid;gap:8px}
+  .alert{background:#102435;border:1px solid #294356;border-radius:9px;padding:10px 11px;display:grid;grid-template-columns:26px 1fr auto;gap:8px;align-items:center}
+  .alert .aico{font-size:20px}.alert b{font-size:12px}.alert small{display:block;color:#8ca5b8;margin-top:3px}.badge{font-size:10px;padding:4px 7px;border-radius:6px;font-weight:800}.high{background:#7f1d1d;color:#fecaca}.moderate{background:#7c4a03;color:#fde68a}.low{background:#164e63;color:#a5f3fc}
+  .weather-box{margin:0 12px 12px;padding:13px;background:#102435;border-radius:10px}
+  .weather-main{display:flex;align-items:center;justify-content:space-between}.temp{font-size:34px;font-weight:800}.condition{font-size:12px;color:#b3c7d6}.weather-icon{font-size:42px}
+  .metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:12px}.metric{font-size:11px;color:#9db2c1}.metric b{display:block;color:#edf6ff;font-size:12px;margin-top:2px}
+  .lower{display:grid;grid-template-columns:1.1fr 1.1fr .9fr;gap:14px;margin-top:14px}
+  .forecast{padding:12px;display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+  .day{background:#102435;border:1px solid #243e52;border-radius:8px;padding:9px 4px;text-align:center}.day small{color:#8da5b7}.day .wicon{font-size:22px;margin:7px 0}.day b{font-size:12px}
+  .hazard{padding:12px}.hazard-img{height:130px;border-radius:9px;background:radial-gradient(circle at 65% 45%,#ef4444 0 7%,#f59e0b 10%,#22c55e 22%,#075985 44%,#06131e 70%);position:relative;overflow:hidden}
+  .hazard-img:after{content:"SATELLITE / RADAR RISK VIEW";position:absolute;left:10px;bottom:9px;font-size:10px;background:#0009;padding:5px 7px;border-radius:5px}
+  .hazard-info{padding:10px 2px;font-size:11px;color:#a7bac8;line-height:1.55}.hazard-info b{color:#eef6ff}
+  .detail{padding:12px}.detail-card{background:#102435;border-radius:9px;padding:12px}.detail-card h4{margin:0 0 8px;font-size:13px}.detail-row{display:flex;gap:8px;margin:8px 0;color:#9db3c3;font-size:11px}.detail-row b{color:#eef6ff}
+  .footer-note{color:#688197;font-size:10px;margin-top:12px;text-align:right}
+  .modal{position:fixed;inset:0;background:#0009;display:none;place-items:center;z-index:20}.modal.show{display:grid}.modal-card{width:min(480px,92vw);background:#0b1b28;border:1px solid #2a4559;border-radius:14px;padding:20px}.modal-card h2{margin:0 0 8px;font-size:18px}.modal-card p{font-size:12px;color:#9eb2c0;line-height:1.6}.modal-card input{width:100%;padding:11px;border-radius:8px;border:1px solid #315066;background:#08151f;color:#fff}.modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:12px}.btn{padding:9px 13px;border-radius:8px;border:1px solid #315066;background:#12283a;color:#dcecff;cursor:pointer}.btn.primary{background:#1476d4;border-color:#1476d4}
+  .toast{position:fixed;right:18px;bottom:18px;background:#102435;border:1px solid #34536a;padding:11px 14px;border-radius:9px;font-size:12px;display:none;z-index:30}.toast.show{display:block}
+  @media(max-width:1050px){.app{grid-template-columns:72px 1fr}aside{padding:18px 8px}.brand span,nav button span{display:none}.brand{justify-content:center}.risk-row{grid-template-columns:repeat(2,1fr)}.lower{grid-template-columns:1fr}.grid{grid-template-columns:1fr}}
+  @media(max-width:650px){.app{display:block}aside{height:auto;position:static;display:flex;overflow:auto}.brand{margin-right:15px}.brand span{display:inline}.risk-row{grid-template-columns:1fr}.content{padding:12px}.metrics{grid-template-columns:repeat(2,1fr)}.forecast{overflow:auto;grid-template-columns:repeat(7,95px)}#map{height:390px}.search{width:42vw}}
+</style>
+</head>
+<body>
+<div class="app">
+<aside>
+  <div class="brand"><div class="brand-icon">⛈</div><span>NE WeatherGuard</span></div>
+  <nav>
+    <button class="active" data-section="dashboard"><span class="nav-icon">⌂</span><span>Dashboard</span></button>
+    <button data-section="weather"><span class="nav-icon">☁</span><span>Live Weather</span></button>
+    <button data-section="hazard"><span class="nav-icon">⚠</span><span>Hazard Forecast</span></button>
+    <button id="satBtn"><span class="nav-icon">◉</span><span>Satellite View</span></button>
+    <button id="terrainBtn"><span class="nav-icon">▧</span><span>Radar View</span></button>
+    <button data-section="alerts"><span class="nav-icon">♢</span><span>Alerts</span></button>
+    <button data-section="history"><span class="nav-icon">◷</span><span>Historical Data</span></button>
+    <button id="keyBtn"><span class="nav-icon">⚙</span><span>Map API Key</span></button>
+  </nav>
+</aside>
+
+<main>
+<header>
+  <div class="top-title">Weather Risk Intelligence • North-Eastern India</div>
+  <div class="search"><input id="locationSearch" placeholder="Search location (e.g. Agartala)" /><button id="searchBtn">⌕</button></div>
+  <div class="avatar">●</div>
+</header>
+
+<div class="content">
+  <section class="risk-row">
+    <div class="risk-card red"><div class="ico">⚡</div><div><strong id="stormRisk">Thunderstorm — Checking</strong><span id="stormTime">Live forecast</span></div></div>
+    <div class="risk-card blue"><div class="ico">🌧</div><div><strong id="rainRisk">Heavy Rain — Checking</strong><span>Next 6 hours</span></div></div>
+    <div class="risk-card purple"><div class="ico">💨</div><div><strong id="windRisk">Strong Winds — Checking</strong><span>Next 12 hours</span></div></div>
+    <div class="risk-card green"><div class="ico">⛰</div><div><strong>Landslide Risk — Demo</strong><span>Model placeholder</span></div></div>
+  </section>
+
+  <section class="grid">
+    <div class="panel">
+      <div class="panel-head"><h3>Real-time Risk Map — North-Eastern India</h3><small id="mapStatus">Google Maps</small></div>
+      <div class="map-wrap">
+        <div id="map"></div>
+        <div class="map-overlay"><div style="margin-bottom:6px;font-weight:800">Risk overlay</div><div class="legend">
+          <div><i class="dot" style="background:#ef4444"></i> Very High</div>
+          <div><i class="dot" style="background:#f97316"></i> High</div>
+          <div><i class="dot" style="background:#facc15"></i> Moderate</div>
+          <div><i class="dot" style="background:#22c55e"></i> Low</div>
+        </div></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head"><h3>Active Alerts</h3><small id="updated">Updating…</small></div>
+      <div class="alerts" id="alerts"></div>
+      <div class="weather-box">
+        <div class="weather-main"><div><div class="condition" id="placeName">Kumarghat, Tripura</div><div class="temp" id="temp">--°C</div><div class="condition" id="condition">Loading live weather…</div></div><div class="weather-icon" id="weatherIcon">☁</div></div>
+        <div class="metrics">
+          <div class="metric">Humidity<b id="humidity">--%</b></div>
+          <div class="metric">Wind<b id="wind">-- km/h</b></div>
+          <div class="metric">Rainfall<b id="rain">-- mm</b></div>
+          <div class="metric">Pressure<b id="pressure">-- hPa</b></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="lower">
+    <div class="panel">
+      <div class="panel-head"><h3>7-Day Forecast</h3><small id="forecastPlace">Kumarghat</small></div>
+      <div class="forecast" id="forecast"></div>
+    </div>
+    <div class="panel">
+      <div class="panel-head"><h3>Hazard-Specific Information</h3><small>Thunderstorm</small></div>
+      <div class="hazard"><div class="hazard-img"></div><div class="hazard-info">
+        <div>📍 <b id="hazardArea">Kumarghat, Dhalai, Unakoti</b></div>
+        <div>◷ <b id="hazardTime">Next 3 hours</b></div>
+        <div>⚠ Potential impact: <b id="hazardImpact">Rain, lightning and gusty winds</b></div>
+        <div>✓ Action: <b>Secure loose objects and avoid open areas during severe weather.</b></div>
+      </div></div>
+    </div>
+    <div class="panel">
+      <div class="panel-head"><h3>Alert Details</h3><small>Live model feed</small></div>
+      <div class="detail"><div class="detail-card"><h4>⚡ Thunderstorm Alert</h4>
+        <div class="detail-row">📍 <b id="detailPlace">Kumarghat, Tripura</b></div>
+        <div class="detail-row">◷ Expected: <b id="detailExpected">Based on live forecast</b></div>
+        <div class="detail-row">⚠ Impact: <b id="detailImpact">Loading</b></div>
+      </div></div>
+    </div>
+  </section>
+  <div class="footer-note">Prototype • Weather values are fetched live from Open-Meteo. Hazard labels are demonstration thresholds, not official warnings.</div>
+</div>
+</main>
+</div>
+
+<div class="modal" id="keyModal"><div class="modal-card">
+  <h2>Google Maps API Key</h2>
+  <p>For the exact Google basemap, this prototype loads the real Google Maps JavaScript API. Paste a browser-restricted API key below. The key is stored only in this browser's localStorage.</p>
+  <input id="apiKeyInput" placeholder="AIza..." />
+  <div class="modal-actions"><button class="btn" id="closeKey">Cancel</button><button class="btn primary" id="saveKey">Save & Reload Map</button></div>
+</div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+const DEFAULT_LOCATION = {name:"Kumarghat, Tripura", short:"Kumarghat", lat:24.1555, lon:92.0425};
+let currentLocation = {...DEFAULT_LOCATION};
+let map, marker, circles=[];
+let mapReady = false;
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+function toast(msg){$("toast").textContent=msg;$("toast").classList.add("show");setTimeout(()=>$("toast").classList.remove("show"),2800)}
+function weatherCode(code){
+  if(code===0) return ["☀️","Clear sky"];
+  if([1,2,3].includes(code)) return ["⛅","Partly cloudy"];
+  if([45,48].includes(code)) return ["🌫️","Fog"];
+  if([51,53,55,56,57].includes(code)) return ["🌦️","Drizzle"];
+  if([61,63,65,66,67,80,81,82].includes(code)) return ["🌧️","Rain"];
+  if([71,73,75,77,85,86].includes(code)) return ["🌨️","Snow"];
+  if([95,96,99].includes(code)) return ["⛈️","Thunderstorm"];
+  return ["☁️","Cloudy"];
+}
+function risk(level){return level==="High"?"high":level==="Moderate"?"moderate":"low"}
+
+function renderAlerts(d){
+  const c=d.current, h=d.hourly;
+  const next6=(h.precipitation||[]).slice(0,6).reduce((a,b)=>a+(b||0),0);
+  const gust=Math.max(...(h.wind_gusts_10m||[]).slice(0,12).map(x=>x||0),0);
+  const thunder=Math.max(...(h.thunderstorm_probability||[]).slice(0,6).map(x=>x||0),0);
+  let storm=thunder>=60 || [95,96,99].includes(c.weather_code);
+  let rain=next6>=20;
+  let wind=gust>=45;
+  $("stormRisk").textContent=`Thunderstorm — ${storm?"High":"Low"} Risk`;
+  $("rainRisk").textContent=`Heavy Rain — ${rain?"Moderate":"Low"} Risk`;
+  $("windRisk").textContent=`Strong Winds — ${wind?"High":"Low"} Risk`;
+  $("stormTime").textContent=storm?"Potential in next 6 hours":"No severe signal in next 6 hours";
+  const alerts=[];
+  if(storm) alerts.push(["⚡","Thunderstorm Alert",currentLocation.short+" • next 6 hours","High"]);
+  else alerts.push(["⚡","Thunderstorm Monitoring",currentLocation.short+" • no severe signal","Low"]);
+  if(rain) alerts.push(["⚠","Heavy Rainfall Warning",currentLocation.short+" • next 6 hours","Moderate"]);
+  if(wind) alerts.push(["💨","Strong Wind Alert",currentLocation.short+" • next 12 hours","High"]);
+  alerts.push(["💧","Rainfall Outlook",`${next6.toFixed(1)} mm expected in next 6h`,"Low"]);
+  $("alerts").innerHTML=alerts.map(a=>`<div class="alert"><div class="aico">${a[0]}</div><div><b>${esc(a[1])}</b><small>${esc(a[2])}</small></div><span class="badge ${risk(a[3])}">${a[3]}</span></div>`).join("");
+  $("hazardImpact").textContent=storm?"Thunderstorm, lightning, heavy rain and gusts":"Rain and localized gusts";
+  $("detailImpact").textContent=storm?"Lightning / heavy rain / gusts":"No severe signal";
+}
+
+function drawRiskOverlay(d){
+  if(!mapReady) return;
+  circles.forEach(c=>c.setMap(null)); circles=[];
+  const h=d.hourly;
+  const thunder=Math.max(...(h.thunderstorm_probability||[]).slice(0,6).map(x=>x||0),0);
+  const rain=(h.precipitation||[]).slice(0,6).reduce((a,b)=>a+(b||0),0);
+  const strength=Math.max(thunder/100, Math.min(rain/50,1), .18);
+  circles.push(new google.maps.Circle({
+    map, center:{lat:currentLocation.lat,lng:currentLocation.lon}, radius:18000+strength*28000,
+    strokeColor:strength>.65?"#ef4444":"#f59e0b",strokeOpacity:.45,strokeWeight:2,
+    fillColor:strength>.65?"#ef4444":"#f59e0b",fillOpacity:.12
+  }));
+  marker.setPosition({lat:currentLocation.lat,lng:currentLocation.lon});
+  marker.setTitle(currentLocation.name);
+}
+
+async function fetchWeather(){
+  const url=`https://api.open-meteo.com/v1/forecast?latitude=${currentLocation.lat}&longitude=${currentLocation.lon}&current=temperature_2m,relative_humidity_2m,precipitation,rain,showers,weather_code,wind_speed_10m,wind_gusts_10m,surface_pressure&hourly=temperature_2m,precipitation,precipitation_probability,weather_code,wind_gusts_10m,thunderstorm_probability&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max&timezone=auto&forecast_days=7`;
+  try{
+    const r=await fetch(url); if(!r.ok) throw new Error("Weather API error"); const d=await r.json();
+    const c=d.current;
+    $("placeName").textContent=currentLocation.name;
+    $("forecastPlace").textContent=currentLocation.short;
+    $("temp").textContent=`${Math.round(c.temperature_2m)}°C`;
+    const wi=weatherCode(c.weather_code); $("weatherIcon").textContent=wi[0]; $("condition").textContent=wi[1];
+    $("humidity").textContent=`${c.relative_humidity_2m}%`;
+    $("wind").textContent=`${Math.round(c.wind_speed_10m)} km/h`;
+    $("rain").textContent=`${Number(c.precipitation||0).toFixed(1)} mm`;
+    $("pressure").textContent=`${Math.round(c.surface_pressure)} hPa`;
+    $("updated").textContent=`Updated ${new Date().toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"})}`;
+    $("hazardArea").textContent=currentLocation.name;
+    $("detailPlace").textContent=currentLocation.name;
+    $("detailExpected").textContent="Next 6 hours";
+    $("detailImpact").textContent=wi[1];
+    $("forecast").innerHTML=d.daily.time.map((date,i)=>{
+      const dt=new Date(date+"T12:00:00"); const wd=dt.toLocaleDateString([], {weekday:"short"});
+      const x=weatherCode(d.daily.weather_code[i]);
+      return `<div class="day"><small>${wd}</small><div style="font-size:10px;color:#7892a5">${dt.toLocaleDateString([], {day:"2-digit",month:"short"})}</div><div class="wicon">${x[0]}</div><b>${Math.round(d.daily.temperature_2m_max[i])}°</b><div style="font-size:10px;color:#89a1b3">${Math.round(d.daily.temperature_2m_min[i])}°</div><div style="font-size:9px;color:#6fa7d1;margin-top:4px">${Math.round(d.daily.precipitation_probability_max[i]||0)}% rain</div></div>`
+    }).join("");
+    renderAlerts(d); drawRiskOverlay(d);
+  }catch(e){
+    toast("Weather service unavailable — showing map only");
+    $("condition").textContent="Weather data unavailable";
+  }
+}
+
+async function searchLocation(){
+  const q=$("locationSearch").value.trim(); if(!q) return;
+  try{
+    const r=await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=5&language=en&format=json`);
+    const j=await r.json();
+    const result=(j.results||[]).find(x=>x.country_code==="IN" && x.latitude>21 && x.latitude<30 && x.longitude>88 && x.longitude<98) || j.results?.[0];
+    if(!result){toast("Location not found");return}
+    currentLocation={name:[result.name,result.admin1,result.country].filter(Boolean).join(", "),short:result.name,lat:result.latitude,lon:result.longitude};
+    if(mapReady){map.panTo({lat:result.latitude,lng:result.longitude});map.setZoom(10)}
+    fetchWeather(); toast(`Showing ${currentLocation.name}`);
+  }catch(e){toast("Could not search location")}
+}
+
+function initMap(){
+  map=new google.maps.Map(document.getElementById("map"),{
+    center:{lat:25.7,lng:93.4},zoom:7,mapTypeId:"roadmap",
+    streetViewControl:false,fullscreenControl:true,mapTypeControl:true,zoomControl:true,
+    gestureHandling:"greedy"
+  });
+  marker=new google.maps.Marker({map,position:{lat:DEFAULT_LOCATION.lat,lng:DEFAULT_LOCATION.lon},title:DEFAULT_LOCATION.name});
+  mapReady=true;$("mapStatus").textContent="Google Maps • live basemap";
+  fetchWeather();
+}
+
+function loadGoogleMaps(){
+  const key=localStorage.getItem("newg_google_maps_key");
+  if(!key){ $("keyModal").classList.add("show"); return; }
+  const s=document.createElement("script");
+  s.src=`https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(key)}&callback=initMap&v=weekly`;
+  s.async=true;s.defer=true;s.onerror=()=>{toast("Google Maps failed to load — check API key/restrictions");$("keyModal").classList.add("show")};
+  document.head.appendChild(s);
+}
+window.initMap=initMap;
+
+$("searchBtn").onclick=searchLocation;
+$("locationSearch").addEventListener("keydown",e=>{if(e.key==="Enter")searchLocation()});
+$("satBtn").onclick=()=>{if(mapReady)map.setMapTypeId("satellite")};
+$("terrainBtn").onclick=()=>{if(mapReady)map.setMapTypeId("terrain")};
+$("keyBtn").onclick=()=>{$("apiKeyInput").value=localStorage.getItem("newg_google_maps_key")||"";$("keyModal").classList.add("show")};
+$("closeKey").onclick=()=>$("keyModal").classList.remove("show");
+$("saveKey").onclick=()=>{const k=$("apiKeyInput").value.trim();if(!k)return toast("Paste a Google Maps API key");localStorage.setItem("newg_google_maps_key",k);location.reload()};
+document.querySelectorAll("nav button[data-section]").forEach(b=>b.onclick=()=>toast(`${b.textContent.trim()} is represented in this prototype`));
+
+loadGoogleMaps();
+</script>
+</body>
+</html>
